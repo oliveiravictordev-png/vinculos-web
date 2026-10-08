@@ -1,5 +1,6 @@
 import './style.css';
 import { ApiError, findCompanies, findRecords } from './api';
+import { maskCompanies, maskDocument, maxDocumentLength } from './document';
 import { translateApiMessage } from './messages';
 import type { CompanyRecords, CustomerKey, DocumentType, RecordItem } from './types';
 
@@ -21,6 +22,7 @@ const ERROR_TITLES: Record<number, string> = {
   0: 'Erro de rede',
   400: 'Dados inválidos',
   429: 'Muitas requisições',
+  500: 'Erro inesperado',
   503: 'Serviço indisponível',
 };
 
@@ -86,13 +88,6 @@ function readCompanies(): string[] {
   return companiesInput.value.split(/[\s,;]+/).filter(Boolean);
 }
 
-/** Formata 14 posições como XX.XXX.XXX/XXXX-XX (vale também para o CNPJ alfanumérico). */
-function formatCnpj(cnpj: string): string {
-  return cnpj.length === 14
-    ? `${cnpj.slice(0, 2)}.${cnpj.slice(2, 5)}.${cnpj.slice(5, 8)}/${cnpj.slice(8, 12)}-${cnpj.slice(12)}`
-    : cnpj;
-}
-
 async function run(action: () => Promise<void>): Promise<void> {
   submitButton.disabled = true;
   fillCompaniesButton.disabled = true;
@@ -107,11 +102,11 @@ async function run(action: () => Promise<void>): Promise<void> {
   }
 }
 
+// Status desconhecido (ex.: 404 de um proxy) nunca aparece como código técnico: vira uma mensagem genérica.
 function renderError(error: unknown): void {
-  const title = error instanceof ApiError
-    ? (ERROR_TITLES[error.status] ?? `Erro HTTP ${error.status}`)
-    : 'Erro inesperado';
-  const detail = error instanceof Error ? translateApiMessage(error.message) : String(error);
+  const known = error instanceof ApiError && error.status in ERROR_TITLES;
+  const title = known ? ERROR_TITLES[error.status] : 'Não foi possível concluir a consulta';
+  const detail = known ? translateApiMessage(error.message) : 'Tente novamente em instantes.';
   result.replaceChildren(
     el('div', { className: 'alert', role: 'alert' }, el('strong', {}, title), el('p', {}, detail)),
   );
@@ -125,7 +120,7 @@ function renderCompanies(companies: string[]): void {
   const viewRecords = el('button', { type: 'button', className: 'link' }, 'Ver registros destas empresas');
   viewRecords.addEventListener('click', () => {
     selectEndpoint('records');
-    companiesInput.value = companies.join('\n');
+    companiesInput.value = maskCompanies(companies.join('\n'));
     form.requestSubmit();
   });
   result.replaceChildren(
@@ -133,7 +128,7 @@ function renderCompanies(companies: string[]): void {
       'div',
       { className: 'card' },
       el('h2', {}, `${companies.length} ${companies.length === 1 ? 'empresa' : 'empresas'}`),
-      el('ul', { className: 'company-list' }, ...companies.map((cnpj) => el('li', {}, formatCnpj(cnpj)))),
+      el('ul', { className: 'company-list' }, ...companies.map((cnpj) => el('li', {}, maskDocument(cnpj, 'CNPJ')))),
       viewRecords,
     ),
   );
@@ -148,7 +143,7 @@ function renderCompanyRecords(group: CompanyRecords): HTMLElement {
   const header = el(
     'div',
     { className: 'card-header' },
-    el('h2', {}, formatCnpj(group.company)),
+    el('h2', {}, maskDocument(group.company, 'CNPJ')),
     el('span', { className: count === 0 ? 'badge empty' : 'badge' }, `${count} ${count === 1 ? 'registro' : 'registros'}`),
   );
   if (count === 0) {
@@ -192,7 +187,7 @@ form.addEventListener('submit', (event) => {
 fillCompaniesButton.addEventListener('click', () => {
   void run(async () => {
     const response = await findCompanies(readKey());
-    companiesInput.value = response.companies.join('\n');
+    companiesInput.value = maskCompanies(response.companies.join('\n'));
     if (response.companies.length === 0) {
       result.replaceChildren(el('p', { className: 'muted' }, 'Nenhuma empresa ligada a este cliente.'));
     } else {
@@ -200,6 +195,28 @@ fillCompaniesButton.addEventListener('click', () => {
     }
   });
 });
+
+// Máscaras: o campo nunca aceita mais caracteres do que o documento do tipo escolhido.
+const documentInput = query<HTMLInputElement>('input[name="document"]');
+const documentTypeSelect = query<HTMLSelectElement>('select[name="documentType"]');
+const yearInput = query<HTMLInputElement>('input[name="year"]');
+
+function applyDocumentMask(): void {
+  const type = documentTypeSelect.value as DocumentType;
+  documentInput.maxLength = maxDocumentLength(type);
+  documentInput.placeholder = type === 'CPF' ? '000.000.000-00' : '00.000.000/0000-00';
+  documentInput.value = maskDocument(documentInput.value, type);
+}
+
+documentInput.addEventListener('input', applyDocumentMask);
+documentTypeSelect.addEventListener('change', applyDocumentMask);
+yearInput.addEventListener('input', () => {
+  yearInput.value = yearInput.value.replace(/\D/g, '').slice(0, 4);
+});
+companiesInput.addEventListener('blur', () => {
+  companiesInput.value = maskCompanies(companiesInput.value);
+});
+applyDocumentMask();
 
 for (const item of menuItems) {
   item.addEventListener('click', () => selectEndpoint(item.dataset.endpoint as Endpoint));
