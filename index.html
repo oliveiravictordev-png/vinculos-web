@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/gft-logo.svg" />
+    <title>Vínculos API</title>
+  </head>
+  <body>
+    <header class="topbar">
+      <img src="/gft-logo.svg" alt="GFT" class="logo" />
+      <span class="app-name">Vínculos API</span>
+    </header>
+
+    <div class="layout">
+      <nav class="menu" aria-label="Endpoints">
+        <button type="button" class="menu-item" data-endpoint="companies">
+          <span class="method">POST</span>
+          <span class="menu-label">Empresas do cliente</span>
+          <small>/customers/companies</small>
+        </button>
+        <button type="button" class="menu-item" data-endpoint="records">
+          <span class="method">POST</span>
+          <span class="menu-label">Registros por empresa</span>
+          <small>/customers/records</small>
+        </button>
+      </nav>
+
+      <main class="content">
+        <h1 id="title"></h1>
+        <p id="description" class="muted"></p>
+
+        <form id="query-form" class="card" novalidate>
+          <div class="row">
+            <label>
+              Ano
+              <input name="year" type="number" min="1900" max="2100" value="2024" />
+            </label>
+            <label>
+              Tipo de documento
+              <select name="documentType">
+                <option value="CPF">CPF</option>
+                <option value="CNPJ">CNPJ</option>
+              </select>
+            </label>
+            <label class="grow">
+              Documento
+              <input name="document" placeholder="010.000.001-09" autocomplete="off" />
+            </label>
+          </div>
+
+          <div id="companies-field" class="field" hidden>
+            <label for="companies">Empresas (CNPJ, um por linha ou separados por vírgula)</label>
+            <textarea id="companies" name="companies" rows="4" spellcheck="false"></textarea>
+            <button type="button" id="fill-companies" class="link">Preencher com as empresas deste cliente</button>
+          </div>
+
+          <button type="submit" class="primary">Consultar</button>
+        </form>
+
+        <section id="result" aria-live="polite"></section>
+      </main>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
