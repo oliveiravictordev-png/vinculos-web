@@ -56,6 +56,65 @@ body {
   color: var(--text);
 }
 
+[hidden] {
+  display: none !important;
+}
+
+.login-view {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: linear-gradient(135deg, var(--navy), var(--navy-2) 60%, #154a8a);
+}
+
+.login-card {
+  width: min(100%, 420px);
+  padding: 36px;
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.3);
+}
+
+.login-logo {
+  height: 34px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: #ffffff;
+}
+
+.login-kicker {
+  margin: 28px 0 4px;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.login-card h1 {
+  margin: 0 0 8px;
+  font-size: 28px;
+}
+
+.login-card .muted {
+  margin: 0 0 24px;
+}
+
+.login-card label + input {
+  margin-bottom: 14px;
+}
+
+.login-error {
+  margin: 4px 0 0;
+  color: var(--danger);
+  font-size: 14px;
+}
+
+.login-submit {
+  width: 100%;
+}
+
 .container {
   width: 100%;
   max-width: var(--container);
@@ -128,6 +187,24 @@ a {
 
 .header-cta:hover {
   background: var(--accent);
+}
+
+.logout {
+  flex-shrink: 0;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.logout:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 /* ---- Abertura -------------------------------------------------------------------------------- */

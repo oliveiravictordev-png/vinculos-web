@@ -1,5 +1,5 @@
 import './style.css';
-import { ApiError, findCompanies, findRecords } from './api';
+import { ApiError, clearSession, findCompanies, findRecords, hasSession, login } from './api';
 import { maskCompanies, maskDocument, maxDocumentLength } from './document';
 import { translateApiMessage } from './messages';
 import type { CompanyRecords, CustomerKey, DocumentType, RecordItem } from './types';
@@ -21,6 +21,7 @@ const ENDPOINTS: Record<Endpoint, { title: string; description: string }> = {
 const ERROR_TITLES: Record<number, string> = {
   0: 'Erro de rede',
   400: 'Dados inválidos',
+  401: 'Sessão expirada',
   429: 'Muitas requisições',
   500: 'Erro inesperado',
   503: 'Serviço indisponível',
@@ -28,6 +29,13 @@ const ERROR_TITLES: Record<number, string> = {
 
 const currency = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 const dateTime = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+
+const loginView = query<HTMLElement>('#login-view');
+const appShell = query<HTMLElement>('#app-shell');
+const loginForm = query<HTMLFormElement>('#login-form');
+const loginButton = query<HTMLButtonElement>('#login-form button[type="submit"]');
+const loginError = query<HTMLElement>('#login-error');
+const logoutButton = query<HTMLButtonElement>('#logout');
 
 const form = query<HTMLFormElement>('#query-form');
 const submitButton = query<HTMLButtonElement>('#query-form button[type="submit"]');
@@ -57,6 +65,45 @@ function el<K extends keyof HTMLElementTagNameMap>(
   element.append(...children);
   return element;
 }
+
+function showApplication(authenticated: boolean): void {
+  loginView.hidden = authenticated;
+  appShell.hidden = !authenticated;
+  if (!authenticated) {
+    query<HTMLInputElement>('#username').focus();
+  }
+}
+
+loginForm.addEventListener('submit', (event) => {
+  event.preventDefault();
+  const data = new FormData(loginForm);
+  loginButton.disabled = true;
+  loginError.hidden = true;
+  void login({
+    username: String(data.get('username') ?? '').trim(),
+    password: String(data.get('password') ?? ''),
+  })
+    .then(() => {
+      loginForm.reset();
+      showApplication(true);
+    })
+    .catch((error: unknown) => {
+      loginError.textContent = error instanceof ApiError && error.status === 401
+        ? 'Usuário ou senha inválidos.'
+        : 'Não foi possível entrar. Tente novamente.';
+      loginError.hidden = false;
+    })
+    .finally(() => {
+      loginButton.disabled = false;
+    });
+});
+
+logoutButton.addEventListener('click', () => {
+  clearSession();
+  showApplication(false);
+});
+
+window.addEventListener('auth:expired', () => showApplication(false));
 
 function selectEndpoint(endpoint: Endpoint): void {
   current = endpoint;
@@ -231,3 +278,4 @@ for (const image of document.querySelectorAll<HTMLImageElement>('.partner img'))
 }
 
 selectEndpoint(location.hash === '#records' ? 'records' : 'companies');
+showApplication(hasSession());

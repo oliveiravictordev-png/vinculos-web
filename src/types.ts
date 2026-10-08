@@ -34,6 +34,17 @@ export interface RecordsResponse {
   companies: CompanyRecords[];
 }
 
+export interface LoginRequest {
+  username: string;
+  password: string;
+}
+
+export interface TokenResponse {
+  accessToken: string;
+  tokenType: 'Bearer';
+  expiresAt: string;
+}
+
 /** Corpo de erro RFC 9457 devolvido pelo ApiExceptionHandler. */
 export interface ProblemDetail {
   title?: string;

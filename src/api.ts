@@ -1,13 +1,16 @@
 import type {
   CompaniesRequest,
   CompaniesResponse,
+  LoginRequest,
   ProblemDetail,
   RecordsRequest,
   RecordsResponse,
+  TokenResponse,
 } from './types';
 
 // Vazio em desenvolvimento (proxy do Vite); em produção aponte VITE_API_URL para a API.
 const BASE_URL: string = import.meta.env.VITE_API_URL ?? '';
+const TOKEN_KEY = 'vinculos.accessToken';
 
 export class ApiError extends Error {
   readonly status: number;
@@ -20,12 +23,17 @@ export class ApiError extends Error {
   }
 }
 
-async function post<T>(path: string, body: unknown): Promise<T> {
+async function post<T>(path: string, body: unknown, authenticated = true): Promise<T> {
+  const token = sessionStorage.getItem(TOKEN_KEY);
   let response: Response;
   try {
     response = await fetch(`${BASE_URL}${path}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        ...(authenticated && token ? { Authorization: `Bearer ${token}` } : {}),
+      },
       body: JSON.stringify(body),
     });
   } catch {
@@ -36,9 +44,27 @@ async function post<T>(path: string, body: unknown): Promise<T> {
   }
   if (!response.ok) {
     const problem = (await response.json().catch(() => ({}))) as ProblemDetail;
+    if (authenticated && response.status === 401) {
+      clearSession();
+      window.dispatchEvent(new Event('auth:expired'));
+    }
     throw new ApiError(response.status, problem);
   }
   return (await response.json()) as T;
+}
+
+export async function login(request: LoginRequest): Promise<TokenResponse> {
+  const response = await post<TokenResponse>('/api/v1/auth/token', request, false);
+  sessionStorage.setItem(TOKEN_KEY, response.accessToken);
+  return response;
+}
+
+export function hasSession(): boolean {
+  return sessionStorage.getItem(TOKEN_KEY) !== null;
+}
+
+export function clearSession(): void {
+  sessionStorage.removeItem(TOKEN_KEY);
 }
 
 /** Endpoint 1: empresas ligadas ao cliente. */

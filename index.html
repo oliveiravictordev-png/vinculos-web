@@ -7,6 +7,22 @@
     <title>Vínculos API</title>
   </head>
   <body>
+    <section id="login-view" class="login-view" aria-labelledby="login-title">
+      <form id="login-form" class="login-card">
+        <img src="/gft-logo.svg" alt="GFT" class="login-logo" />
+        <p class="login-kicker">Vínculos API</p>
+        <h1 id="login-title">Acesso administrativo</h1>
+        <p class="muted">Entre com uma das contas administradoras para consultar os vínculos.</p>
+        <label for="username">Usuário</label>
+        <input id="username" name="username" autocomplete="username" required />
+        <label for="password">Senha</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required />
+        <p id="login-error" class="login-error" role="alert" hidden></p>
+        <button type="submit" class="primary login-submit">Entrar</button>
+      </form>
+    </section>
+
+    <div id="app-shell" hidden>
     <header class="site-header">
       <div class="container header-inner">
         <a class="brand" href="#top" aria-label="Início">
@@ -21,6 +37,7 @@
           <a href="#insights">Insights</a>
         </nav>
         <a class="header-cta" href="https://vinculos.212-28-185-69.sslip.io/swagger-ui.html" rel="noopener" target="_blank">Documentação</a>
+        <button id="logout" type="button" class="logout">Sair</button>
       </div>
     </header>
 
@@ -195,6 +212,7 @@
         Bradesco; as marcas pertencem aos seus titulares.
       </div>
     </footer>
+    </div>
 
     <script type="module" src="/src/main.ts"></script>
   </body>
