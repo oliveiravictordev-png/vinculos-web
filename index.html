@@ -8,18 +8,22 @@
   </head>
   <body>
     <section id="login-view" class="login-view" aria-labelledby="login-title">
+      <div class="login-brand login-brand-gft" aria-hidden="true">
+        <img src="/gft-logo.svg" alt="" />
+      </div>
       <form id="login-form" class="login-card">
-        <img src="/gft-logo.svg" alt="GFT" class="login-logo" />
-        <p class="login-kicker">Vínculos API</p>
-        <h1 id="login-title">Acesso administrativo</h1>
-        <p class="muted">Entre com uma das contas administradoras para consultar os vínculos.</p>
-        <label for="username">Usuário</label>
-        <input id="username" name="username" autocomplete="username" required />
-        <label for="password">Senha</label>
-        <input id="password" name="password" type="password" autocomplete="current-password" required />
+        <span class="login-mark" aria-hidden="true"></span>
+        <h1 id="login-title">Entrar</h1>
+        <label class="sr-only" for="username">Usuário</label>
+        <input id="username" name="username" autocomplete="username" placeholder="Usuário" required />
+        <label class="sr-only" for="password">Senha</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Senha" required />
         <p id="login-error" class="login-error" role="alert" hidden></p>
         <button type="submit" class="primary login-submit">Entrar</button>
       </form>
+      <div class="login-brand login-brand-bradesco" aria-hidden="true">
+        <img src="/partners/bradesco-logo.svg" alt="" />
+      </div>
     </section>
 
     <div id="app-shell" hidden>
