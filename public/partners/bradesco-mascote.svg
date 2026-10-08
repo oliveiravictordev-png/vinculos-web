@@ -1,0 +1,7 @@
+<!-- Placeholder: substitua pela imagem oficial do mascote do Bradesco (mesmo nome; para PNG, ajuste o src no index.html). -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 220" role="img" aria-label="Espaço para o mascote do Bradesco">
+  <rect x="4" y="4" width="192" height="212" rx="16" fill="#fdecef" stroke="#cc092f" stroke-width="2" stroke-dasharray="8 6"/>
+  <circle cx="100" cy="82" r="38" fill="#cc092f" opacity="0.85"/>
+  <rect x="56" y="128" width="88" height="56" rx="24" fill="#cc092f" opacity="0.6"/>
+  <text x="100" y="206" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#7a0a1e">mascote</text>
+</svg>

@@ -7,60 +7,194 @@
     <title>Vínculos API</title>
   </head>
   <body>
-    <header class="topbar">
-      <img src="/gft-logo.svg" alt="GFT" class="logo" />
-      <span class="app-name">Vínculos API</span>
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="#top" aria-label="Início">
+          <img src="/gft-logo.svg" alt="GFT" class="logo" />
+        </a>
+        <nav class="main-nav" aria-label="Principal">
+          <a href="#sobre">Sobre Nós</a>
+          <a href="#servicos">Serviços</a>
+          <a href="#produtos">Produtos</a>
+          <a href="#setor">Setor</a>
+          <a href="#parceiros">Parceiros</a>
+          <a href="#insights">Insights</a>
+        </nav>
+        <a class="header-cta" href="https://vinculos.212-28-185-69.sslip.io/swagger-ui.html" rel="noopener" target="_blank">Documentação</a>
+      </div>
     </header>
 
-    <div class="layout">
-      <nav class="menu" aria-label="Endpoints">
-        <button type="button" class="menu-item" data-endpoint="companies">
-          <span class="method">POST</span>
-          <span class="menu-label">Empresas do cliente</span>
-          <small>/customers/companies</small>
-        </button>
-        <button type="button" class="menu-item" data-endpoint="records">
-          <span class="method">POST</span>
-          <span class="menu-label">Registros por empresa</span>
-          <small>/customers/records</small>
-        </button>
-      </nav>
+    <main id="top">
+      <section class="hero" id="sobre">
+        <div class="container">
+          <p class="breadcrumb">Insights <span aria-hidden="true">/</span> Histórias de sucesso <span aria-hidden="true">/</span> Vínculos API</p>
+          <h1>Vínculos API: consulta de vínculos cliente × empresa em 1 bilhão de registros</h1>
+          <p class="lead">
+            API de consulta das empresas ligadas a um cliente e dos dados dele em cada empresa, pela chave ano + tipo do
+            documento + documento. Testada com um bilhão de registros no MongoDB.
+          </p>
+          <dl class="trio">
+            <div>
+              <dt>O que</dt>
+              <dd>Consultar as <strong>empresas</strong> e os <strong>dados</strong> ligados a um cliente</dd>
+            </div>
+            <div>
+              <dt>Por que</dt>
+              <dd>Respostas em <strong>milissegundos</strong> sobre <strong>1 bilhão</strong> de registros</dd>
+            </div>
+            <div>
+              <dt>Como</dt>
+              <dd><strong>Java 25</strong>, <strong>MongoDB</strong> com índice dedicado e <strong>cache</strong></dd>
+            </div>
+          </dl>
+        </div>
+      </section>
 
-      <main class="content">
-        <h1 id="title"></h1>
-        <p id="description" class="muted"></p>
+      <section class="section stats" id="insights" aria-label="Resultados">
+        <div class="container">
+          <h2 class="section-title">Quando as vantagens se transformam em resultados</h2>
+          <ul class="stat-grid">
+            <li class="stat"><strong>1 bilhão</strong><span>de registros carregados e medidos</span></li>
+            <li class="stat"><strong>6,1 ms</strong><span>p99 da consulta sem cache sobre o bilhão</span></li>
+            <li class="stat"><strong>3.973 req/s</strong><span>de vazão com chaves sempre novas</span></li>
+            <li class="stat"><strong>92%</strong><span>de cobertura de testes automatizados</span></li>
+          </ul>
+        </div>
+      </section>
 
-        <form id="query-form" class="card" novalidate>
-          <div class="row">
-            <label>
-              Ano
-              <input name="year" type="number" min="1900" max="2100" value="2024" />
-            </label>
-            <label>
-              Tipo de documento
-              <select name="documentType">
-                <option value="CPF">CPF</option>
-                <option value="CNPJ">CNPJ</option>
-              </select>
-            </label>
-            <label class="grow">
-              Documento
-              <input name="document" placeholder="010.000.001-09" autocomplete="off" />
-            </label>
+      <section class="section console-section" id="servicos">
+        <div class="container">
+          <h2 class="section-title">Consulte a API</h2>
+          <p class="section-lead">Escolha o endpoint, informe a chave do cliente e veja a resposta da demonstração pública.</p>
+
+          <div class="console">
+            <nav class="menu" aria-label="Endpoints">
+              <button type="button" class="menu-item" data-endpoint="companies">
+                <span class="method">POST</span>
+                <span class="menu-label">Empresas do cliente</span>
+                <small>/customers/companies</small>
+              </button>
+              <button type="button" class="menu-item" data-endpoint="records">
+                <span class="method">POST</span>
+                <span class="menu-label">Registros por empresa</span>
+                <small>/customers/records</small>
+              </button>
+            </nav>
+
+            <div class="content">
+              <h3 id="title"></h3>
+              <p id="description" class="muted"></p>
+
+              <form id="query-form" class="card" novalidate>
+                <div class="row">
+                  <label>
+                    Ano
+                    <input name="year" type="number" min="1900" max="2100" value="2026" />
+                  </label>
+                  <label>
+                    Tipo de documento
+                    <select name="documentType">
+                      <option value="CPF">CPF</option>
+                      <option value="CNPJ">CNPJ</option>
+                    </select>
+                  </label>
+                  <label class="grow">
+                    Documento
+                    <input name="document" value="056.858.627-17" autocomplete="off" />
+                  </label>
+                </div>
+
+                <div id="companies-field" class="field" hidden>
+                  <label for="companies">Empresas (CNPJ, um por linha ou separados por vírgula)</label>
+                  <textarea id="companies" name="companies" rows="4" spellcheck="false"></textarea>
+                  <button type="button" id="fill-companies" class="link">Preencher com as empresas deste cliente</button>
+                </div>
+
+                <button type="submit" class="primary">Consultar</button>
+              </form>
+
+              <section id="result" aria-live="polite"></section>
+            </div>
           </div>
+        </div>
+      </section>
 
-          <div id="companies-field" class="field" hidden>
-            <label for="companies">Empresas (CNPJ, um por linha ou separados por vírgula)</label>
-            <textarea id="companies" name="companies" rows="4" spellcheck="false"></textarea>
-            <button type="button" id="fill-companies" class="link">Preencher com as empresas deste cliente</button>
+      <section class="section" id="produtos">
+        <div class="container">
+          <h2 class="section-title">Produtos</h2>
+          <div class="cards">
+            <article class="card feature">
+              <span class="tag">Endpoint 1</span>
+              <h3>Empresas do cliente</h3>
+              <p>Recebe a chave do cliente e devolve os CNPJs das empresas ligadas a ele, respondidos só pelo índice do MongoDB.</p>
+              <code>POST /api/v1/customers/companies</code>
+            </article>
+            <article class="card feature">
+              <span class="tag">Endpoint 2</span>
+              <h3>Registros por empresa</h3>
+              <p>Recebe a chave e uma lista de até 100 empresas e devolve 1 ou N registros do cliente em cada uma.</p>
+              <code>POST /api/v1/customers/records</code>
+            </article>
           </div>
+        </div>
+      </section>
 
-          <button type="submit" class="primary">Consultar</button>
-        </form>
+      <section class="section alt" id="setor">
+        <div class="container">
+          <h2 class="section-title">Setor financeiro</h2>
+          <ul class="checklist">
+            <li><strong>LGPD:</strong> o documento nunca aparece completo em log, e as respostas não ficam guardadas em cache de navegador ou proxy.</li>
+            <li><strong>Dados confiáveis:</strong> leitura confirmada pela maioria do replica set, valores em centavos e schema validado pelo próprio banco.</li>
+            <li><strong>Segurança:</strong> rate limit por IP, cabeçalhos de segurança e erros que não revelam a estrutura da API.</li>
+            <li><strong>Observabilidade:</strong> traces, métricas e logs no Elastic, com a consulta ao banco visível em cada requisição.</li>
+          </ul>
+        </div>
+      </section>
 
-        <section id="result" aria-live="polite"></section>
-      </main>
-    </div>
+      <section class="section" id="parceiros">
+        <div class="container">
+          <h2 class="section-title">Parceiros</h2>
+          <div class="partner card">
+            <img class="partner-logo" src="/partners/bradesco-logo.svg" alt="Bradesco" />
+            <div class="partner-text">
+              <h3>Bradesco</h3>
+              <p>
+                Parceria da GFT com o Bradesco em tecnologia e transformação digital no setor financeiro, contexto em que
+                consultas de vínculos entre clientes e empresas precisam ser rápidas, seguras e confiáveis.
+              </p>
+            </div>
+            <img class="partner-mascot" src="/partners/bradesco-mascote.svg" alt="Mascote do Bradesco" />
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-grid">
+        <div>
+          <img src="/gft-logo.svg" alt="GFT" class="logo footer-logo" />
+        </div>
+        <div>
+          <h4>Projeto</h4>
+          <a href="https://github.com/oliveiravictordev-png/vinculos-api" rel="noopener" target="_blank">API no GitHub</a>
+          <a href="https://github.com/oliveiravictordev-png/vinculos-web" rel="noopener" target="_blank">Front no GitHub</a>
+        </div>
+        <div>
+          <h4>Documentação</h4>
+          <a href="https://vinculos.212-28-185-69.sslip.io/swagger-ui.html" rel="noopener" target="_blank">Swagger</a>
+          <a href="https://vinculos.212-28-185-69.sslip.io/actuator/health" rel="noopener" target="_blank">Health check</a>
+        </div>
+        <div>
+          <h4>Tecnologia</h4>
+          <span>Java 25 · Spring Boot 4</span>
+          <span>MongoDB 8 · TypeScript</span>
+        </div>
+      </div>
+      <div class="container disclaimer">
+        Projeto de demonstração desenvolvido como teste técnico. Não é um site oficial da GFT Technologies nem do
+        Bradesco; as marcas pertencem aos seus titulares.
+      </div>
+    </footer>
 
     <script type="module" src="/src/main.ts"></script>
   </body>

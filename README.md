@@ -47,7 +47,9 @@ src/
 ├── api.ts      cliente HTTP (fetch) e ApiError
 ├── main.ts     menu, formulário e renderização dos resultados
 └── style.css   tema claro/escuro
-public/gft-logo.svg   logo (placeholder: substitua pelo SVG oficial com o mesmo nome)
+public/gft-logo.svg                  logo da GFT (provisória: substitua pelo SVG oficial com o mesmo nome)
+public/partners/bradesco-logo.svg    logo do Bradesco na seção Parceiros (provisória)
+public/partners/bradesco-mascote.svg mascote do Bradesco na seção Parceiros (provisório; para PNG, ajuste o src no index.html)
 ```
 
 Convenção: código e nomes em inglês; textos da interface e comentários em português.

@@ -71,7 +71,10 @@ function selectEndpoint(endpoint: Endpoint): void {
   query('#description').textContent = ENDPOINTS[endpoint].description;
   companiesField.hidden = endpoint !== 'records';
   result.replaceChildren();
-  history.replaceState(null, '', `#${endpoint}`);
+  // Guarda o endpoint no endereço só quando ele não aponta para uma seção da página (#parceiros, #insights...).
+  if (['', '#companies', '#records'].includes(location.hash)) {
+    history.replaceState(null, '', `#${endpoint}`);
+  }
 }
 
 function readKey(): CustomerKey {
@@ -220,6 +223,11 @@ applyDocumentMask();
 
 for (const item of menuItems) {
   item.addEventListener('click', () => selectEndpoint(item.dataset.endpoint as Endpoint));
+}
+
+// Imagem de parceiro ausente some, em vez de aparecer quebrada (sem onerror inline, que a CSP bloqueia).
+for (const image of document.querySelectorAll<HTMLImageElement>('.partner img')) {
+  image.addEventListener('error', () => image.classList.add('image-missing'));
 }
 
 selectEndpoint(location.hash === '#records' ? 'records' : 'companies');
