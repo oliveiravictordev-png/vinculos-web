@@ -1,5 +1,6 @@
 import './style.css';
 import { ApiError, findCompanies, findRecords } from './api';
+import { translateApiMessage } from './messages';
 import type { CompanyRecords, CustomerKey, DocumentType, RecordItem } from './types';
 
 type Endpoint = 'companies' | 'records';
@@ -15,10 +16,11 @@ const ENDPOINTS: Record<Endpoint, { title: string; description: string }> = {
   },
 };
 
-// Títulos dos erros em português; o detalhe continua sendo o que a API devolve.
+// Títulos dos erros por status; o detalhe vem da API, traduzido em messages.ts.
 const ERROR_TITLES: Record<number, string> = {
   0: 'Erro de rede',
   400: 'Dados inválidos',
+  429: 'Muitas requisições',
   503: 'Serviço indisponível',
 };
 
@@ -109,7 +111,7 @@ function renderError(error: unknown): void {
   const title = error instanceof ApiError
     ? (ERROR_TITLES[error.status] ?? `Erro HTTP ${error.status}`)
     : 'Erro inesperado';
-  const detail = error instanceof Error ? error.message : String(error);
+  const detail = error instanceof Error ? translateApiMessage(error.message) : String(error);
   result.replaceChildren(
     el('div', { className: 'alert', role: 'alert' }, el('strong', {}, title), el('p', {}, detail)),
   );
