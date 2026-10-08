@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://vinculos.212-28-185-69.sslip.io/api/:path*"
+    }
+  ]
+}

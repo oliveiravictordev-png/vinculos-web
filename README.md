@@ -26,6 +26,10 @@ npm run dev        # http://localhost:5173
 
 Em desenvolvimento o Vite repassa `/api` para `localhost:8080` (`vite.config.ts`), então a API não precisa de CORS.
 
+## Vercel
+
+O `vercel.json` repassa `/api/*` para a API publicada na VPS (`https://vinculos.212-28-185-69.sslip.io`). O navegador só fala com o domínio da Vercel, então também não há CORS. Para apontar para outra API, troque o `destination`.
+
 ## Docker
 
 ```bash
