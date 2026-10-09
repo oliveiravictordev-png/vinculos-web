@@ -10,6 +10,8 @@ Um menu lateral escolhe o endpoint:
 | **Registros por empresa** | `POST /api/v1/customers/records` |
 | **Busca e exportação** | `POST /api/v1/customers/search` e `/export` |
 
+Chaves de exemplo que existem na demonstração pública: **2026 / CPF / 056.858.627-17** (a do enunciado) e **2026 / CNPJ / 66.858.630/0001-00**. Ao trocar o tipo do documento, o campo troca para o exemplo do novo tipo. Se você tinha digitado outro documento, o campo é limpo, porque os dígitos de um CPF nunca formam um CNPJ válido. As empresas e o resultado do cliente anterior também saem.
+
 Atalhos de integração entre os dois:
 - No resultado de *Empresas do cliente*, **Ver registros destas empresas** abre o endpoint 2 já com os CNPJs preenchidos.
 - Em *Registros por empresa*, **Preencher com as empresas deste cliente** consulta o endpoint 1 e preenche a lista.

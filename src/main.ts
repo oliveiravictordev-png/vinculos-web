@@ -455,8 +455,29 @@ function applyDocumentMask(): void {
   documentInput.value = maskDocument(documentInput.value, type);
 }
 
+// Chaves de exemplo que existem na demonstração pública, uma por tipo (CPF: a do enunciado).
+const EXAMPLES: Record<DocumentType, string> = { CPF: '056.858.627-17', CNPJ: '66.858.630/0001-00' };
+let documentType = documentTypeSelect.value as DocumentType;
+
+// Um CPF nunca é um CNPJ válido (e vice-versa): reaplicar a máscara nos mesmos dígitos geraria um documento
+// incompleto. Ao trocar o tipo, o exemplo vira o exemplo do novo tipo; outro documento é apagado. As empresas e o
+// resultado eram do cliente anterior, então também saem.
+function changeDocumentType(): void {
+  const previous = documentType;
+  documentType = documentTypeSelect.value as DocumentType;
+  const wasExample = documentInput.value === EXAMPLES[previous];
+  documentInput.value = wasExample ? EXAMPLES[documentType] : '';
+  companiesInput.value = '';
+  search = null;
+  result.replaceChildren();
+  applyDocumentMask();
+  if (!wasExample) {
+    documentInput.focus();
+  }
+}
+
 documentInput.addEventListener('input', applyDocumentMask);
-documentTypeSelect.addEventListener('change', applyDocumentMask);
+documentTypeSelect.addEventListener('change', changeDocumentType);
 yearInput.addEventListener('input', () => {
   yearInput.value = yearInput.value.replace(/\D/g, '').slice(0, 4);
 });
