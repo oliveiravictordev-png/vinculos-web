@@ -177,7 +177,7 @@ function selectEndpoint(endpoint: Endpoint): void {
   query('#title').textContent = ENDPOINTS[endpoint].title;
   query('#description').textContent = ENDPOINTS[endpoint].description;
   companiesField.hidden = endpoint === 'companies';
-  companiesInput.placeholder = endpoint === 'search' ? 'Opcional: vazio = todas as empresas do cliente' : '';
+  companiesInput.placeholder = 'Opcional: vazio = todas as empresas deste cliente';
   filtersField.hidden = endpoint !== 'search';
   exportActions.hidden = endpoint !== 'search' || !session?.scopes.includes(EXPORT_SCOPE);
   search = null;
@@ -403,7 +403,17 @@ form.addEventListener('submit', (event) => {
     if (current === 'companies') {
       renderCompanies((await findCompanies(readKey())).companies);
     } else if (current === 'records') {
-      renderRecords((await findRecords({ ...readKey(), companies: readCompanies() })).companies);
+      // O endpoint 2 exige a lista de empresas. Vazia, a tela usa todas as do cliente (endpoint 1) e mostra quais foram.
+      let companies = readCompanies();
+      if (companies.length === 0) {
+        companies = (await findCompanies(readKey())).companies;
+        companiesInput.value = maskCompanies(companies.join('\n'));
+        if (companies.length === 0) {
+          result.replaceChildren(el('p', { className: 'muted' }, 'Nenhuma empresa ligada a este cliente.'));
+          return;
+        }
+      }
+      renderRecords((await findRecords({ ...readKey(), companies })).companies);
     } else {
       const request = readSearch();
       const page = await searchRecords(request);

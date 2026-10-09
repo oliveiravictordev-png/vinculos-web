@@ -14,7 +14,7 @@ Chaves de exemplo que existem na demonstração pública: **2026 / CPF / 056.858
 
 Atalhos de integração entre os dois:
 - No resultado de *Empresas do cliente*, **Ver registros destas empresas** abre o endpoint 2 já com os CNPJs preenchidos.
-- Em *Registros por empresa*, **Preencher com as empresas deste cliente** consulta o endpoint 1 e preenche a lista.
+- Em *Registros por empresa*, **Preencher com as empresas deste cliente** consulta o endpoint 1 e preenche a lista. Se você consultar com a lista vazia, a tela faz isso sozinha: busca as empresas do cliente no endpoint 1, mostra quais são e consulta o endpoint 2 com elas. A API continua exigindo a lista, como pede o enunciado.
 
 Na **Busca e exportação**:
 - os filtros são empresa, produto e período (as datas são dias inteiros no horário de Brasília);
