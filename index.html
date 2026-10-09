@@ -100,6 +100,11 @@
                 <span class="menu-label">Registros por empresa</span>
                 <small>/customers/records</small>
               </button>
+              <button type="button" class="menu-item" data-endpoint="search">
+                <span class="method">POST</span>
+                <span class="menu-label">Busca e exportação</span>
+                <small>/customers/search</small>
+              </button>
             </nav>
 
             <div class="content">
@@ -131,12 +136,32 @@
                   <button type="button" id="fill-companies" class="link">Preencher com as empresas deste cliente</button>
                 </div>
 
-                <button type="submit" class="primary">Consultar</button>
+                <div id="filters-field" class="filter-grid" hidden>
+                  <label>Produto<input name="product" maxlength="40" placeholder="Todos (ex.: cartao)" /></label>
+                  <label>Atualizado de<input name="updatedFrom" type="date" /></label>
+                  <label>Atualizado até<input name="updatedTo" type="date" /></label>
+                </div>
+
+                <div class="actions">
+                  <button type="submit" class="primary">Consultar</button>
+                  <span id="export-actions" hidden>
+                    <button type="button" id="export-csv" class="secondary">Exportar CSV</button>
+                    <button type="button" id="export-xlsx" class="secondary">Exportar Excel</button>
+                  </span>
+                </div>
               </form>
 
               <section id="result" aria-live="polite"></section>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section class="section alt" id="historico">
+        <div class="container">
+          <h2 class="section-title">Últimas consultas</h2>
+          <p class="section-lead">Suas consultas mais recentes, registradas na auditoria da API com o documento mascarado.</p>
+          <div id="history-list" class="history-list" aria-live="polite"></div>
         </div>
       </section>
 
@@ -156,6 +181,12 @@
               <p>Recebe a chave e uma lista de até 100 empresas e devolve 1 ou N registros do cliente em cada uma.</p>
               <code>POST /api/v1/customers/records</code>
             </article>
+            <article class="card feature">
+              <span class="tag">Busca</span>
+              <h3>Busca, filtros e exportação</h3>
+              <p>Filtra por empresa, produto e período, pagina por cursor, soma os totais e exporta até 5.000 linhas em CSV ou Excel, com auditoria.</p>
+              <code>POST /api/v1/customers/search</code>
+            </article>
           </div>
         </div>
       </section>
@@ -166,7 +197,8 @@
           <ul class="checklist">
             <li><strong>LGPD:</strong> o documento nunca aparece completo em log, e as respostas não ficam guardadas em cache de navegador ou proxy.</li>
             <li><strong>Dados confiáveis:</strong> leitura confirmada pela maioria do replica set, valores em centavos e schema validado pelo próprio banco.</li>
-            <li><strong>Segurança:</strong> rate limit por IP, cabeçalhos de segurança e erros que não revelam a estrutura da API.</li>
+            <li><strong>Segurança:</strong> sessão em cookies HttpOnly (o JavaScript da página não vê o token), JWT assinado com RSA, rate limit por IP e erros que não revelam a estrutura da API.</li>
+            <li><strong>Auditoria:</strong> cada consulta fica registrada com usuário, horário, resultado e duração, sem guardar o documento completo.</li>
             <li><strong>Observabilidade:</strong> traces, métricas e logs no Elastic, com a consulta ao banco visível em cada requisição.</li>
           </ul>
         </div>

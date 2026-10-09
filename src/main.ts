@@ -1,10 +1,32 @@
 import './style.css';
-import { ApiError, clearSession, findCompanies, findRecords, hasSession, login } from './api';
+import {
+  ApiError,
+  currentSession,
+  exportRecords,
+  fetchHistory,
+  findCompanies,
+  findRecords,
+  login,
+  logout,
+  searchRecords,
+} from './api';
 import { maskCompanies, maskDocument, maxDocumentLength } from './document';
 import { translateApiMessage } from './messages';
-import type { CompanyRecords, CustomerKey, DocumentType, RecordItem } from './types';
+import type {
+  AuditAction,
+  AuditOutcome,
+  CompanyRecords,
+  CustomerKey,
+  DocumentType,
+  HistoryItem,
+  RecordItem,
+  SearchItem,
+  SearchRequest,
+  SearchTotals,
+  SessionResponse,
+} from './types';
 
-type Endpoint = 'companies' | 'records';
+type Endpoint = 'companies' | 'records' | 'search';
 
 const ENDPOINTS: Record<Endpoint, { title: string; description: string }> = {
   companies: {
@@ -15,6 +37,12 @@ const ENDPOINTS: Record<Endpoint, { title: string; description: string }> = {
     title: 'Registros por empresa',
     description: 'POST /api/v1/customers/records: devolve os registros do cliente em cada empresa (até 100).',
   },
+  search: {
+    title: 'Busca e exportação',
+    description:
+      'POST /api/v1/customers/search: filtra por empresa, produto e período, pagina por cursor e soma os totais. '
+      + 'A exportação traz até 5.000 linhas em CSV ou Excel.',
+  },
 };
 
 // Títulos dos erros por status; o detalhe vem da API, traduzido em messages.ts.
@@ -22,13 +50,32 @@ const ERROR_TITLES: Record<number, string> = {
   0: 'Erro de rede',
   400: 'Dados inválidos',
   401: 'Sessão expirada',
+  403: 'Acesso negado',
   429: 'Muitas requisições',
   500: 'Erro inesperado',
   503: 'Serviço indisponível',
 };
 
+const ACTIONS: Record<AuditAction, string> = {
+  COMPANIES: 'Empresas do cliente',
+  RECORDS: 'Registros por empresa',
+  SEARCH: 'Busca',
+  EXPORT_CSV: 'Exportação CSV',
+  EXPORT_XLSX: 'Exportação Excel',
+};
+
+const OUTCOMES: Record<AuditOutcome, { label: string; className: string }> = {
+  SUCCESS: { label: 'concluída', className: 'badge' },
+  REJECTED: { label: 'dado inválido', className: 'badge empty' },
+  FAILED: { label: 'falhou', className: 'badge error' },
+};
+
+const PAGE_SIZE = 50;
+const EXPORT_SCOPE = 'customers:export';
+
 const currency = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 const dateTime = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+const integer = new Intl.NumberFormat('pt-BR');
 
 const loginView = query<HTMLElement>('#login-view');
 const appShell = query<HTMLElement>('#app-shell');
@@ -42,10 +89,19 @@ const submitButton = query<HTMLButtonElement>('#query-form button[type="submit"]
 const companiesField = query<HTMLDivElement>('#companies-field');
 const companiesInput = query<HTMLTextAreaElement>('#companies');
 const fillCompaniesButton = query<HTMLButtonElement>('#fill-companies');
+const filtersField = query<HTMLDivElement>('#filters-field');
+const exportActions = query<HTMLElement>('#export-actions');
+const exportCsv = query<HTMLButtonElement>('#export-csv');
+const exportXlsx = query<HTMLButtonElement>('#export-xlsx');
 const result = query<HTMLElement>('#result');
+const historyList = query<HTMLElement>('#history-list');
 const menuItems = Array.from(document.querySelectorAll<HTMLButtonElement>('.menu-item'));
 
 let current: Endpoint = 'companies';
+let session: SessionResponse | null = null;
+
+// Estado da busca: o pedido da primeira página e os itens já carregados, para o "Carregar mais".
+let search: { request: SearchRequest; items: SearchItem[]; totals: SearchTotals; nextCursor: string | null } | null = null;
 
 function query<T extends Element>(selector: string): T {
   const element = document.querySelector<T>(selector);
@@ -66,12 +122,17 @@ function el<K extends keyof HTMLElementTagNameMap>(
   return element;
 }
 
-function showApplication(authenticated: boolean): void {
-  loginView.hidden = authenticated;
-  appShell.hidden = !authenticated;
-  if (!authenticated) {
+function showApplication(active: SessionResponse | null): void {
+  session = active;
+  loginView.hidden = active !== null;
+  appShell.hidden = active === null;
+  if (active === null) {
+    historyList.replaceChildren();
     query<HTMLInputElement>('#username').focus();
+    return;
   }
+  selectEndpoint(current);
+  void loadHistory();
 }
 
 loginForm.addEventListener('submit', (event) => {
@@ -83,13 +144,13 @@ loginForm.addEventListener('submit', (event) => {
     username: String(data.get('username') ?? '').trim(),
     password: String(data.get('password') ?? ''),
   })
-    .then(() => {
+    .then((active) => {
       loginForm.reset();
-      showApplication(true);
+      showApplication(active);
     })
     .catch((error: unknown) => {
-      loginError.textContent = error instanceof ApiError && error.status === 401
-        ? 'Usuário ou senha inválidos.'
+      loginError.textContent = error instanceof ApiError && (error.status === 401 || error.status === 400)
+        ? translateApiMessage(error.message)
         : 'Não foi possível entrar. Tente novamente.';
       loginError.hidden = false;
     })
@@ -99,11 +160,10 @@ loginForm.addEventListener('submit', (event) => {
 });
 
 logoutButton.addEventListener('click', () => {
-  clearSession();
-  showApplication(false);
+  void logout().finally(() => showApplication(null));
 });
 
-window.addEventListener('auth:expired', () => showApplication(false));
+window.addEventListener('auth:expired', () => showApplication(null));
 
 function selectEndpoint(endpoint: Endpoint): void {
   current = endpoint;
@@ -116,10 +176,14 @@ function selectEndpoint(endpoint: Endpoint): void {
   }
   query('#title').textContent = ENDPOINTS[endpoint].title;
   query('#description').textContent = ENDPOINTS[endpoint].description;
-  companiesField.hidden = endpoint !== 'records';
+  companiesField.hidden = endpoint === 'companies';
+  companiesInput.placeholder = endpoint === 'search' ? 'Opcional: vazio = todas as empresas do cliente' : '';
+  filtersField.hidden = endpoint !== 'search';
+  exportActions.hidden = endpoint !== 'search' || !session?.scopes.includes(EXPORT_SCOPE);
+  search = null;
   result.replaceChildren();
   // Guarda o endpoint no endereço só quando ele não aponta para uma seção da página (#parceiros, #insights...).
-  if (['', '#companies', '#records'].includes(location.hash)) {
+  if (['', '#companies', '#records', '#search'].includes(location.hash)) {
     history.replaceState(null, '', `#${endpoint}`);
   }
 }
@@ -138,17 +202,39 @@ function readCompanies(): string[] {
   return companiesInput.value.split(/[\s,;]+/).filter(Boolean);
 }
 
-async function run(action: () => Promise<void>): Promise<void> {
-  submitButton.disabled = true;
-  fillCompaniesButton.disabled = true;
-  result.replaceChildren(el('p', { className: 'muted' }, 'Consultando…'));
+// As datas do formulário são dias inteiros no horário de Brasília (o dia começa às 03:00 UTC).
+function readSearch(): SearchRequest {
+  const data = new FormData(form);
+  const from = String(data.get('updatedFrom') ?? '');
+  const to = String(data.get('updatedTo') ?? '');
+  return {
+    ...readKey(),
+    companies: readCompanies(),
+    product: String(data.get('product') ?? '').trim() || undefined,
+    updatedFrom: from ? new Date(`${from}T00:00:00-03:00`).toISOString() : undefined,
+    updatedTo: to ? new Date(`${to}T23:59:59.999-03:00`).toISOString() : undefined,
+    limit: PAGE_SIZE,
+  };
+}
+
+function setBusy(busy: boolean): void {
+  for (const button of [submitButton, fillCompaniesButton, exportCsv, exportXlsx]) {
+    button.disabled = busy;
+  }
+}
+
+async function run(action: () => Promise<void>, showProgress = true): Promise<void> {
+  setBusy(true);
+  if (showProgress) {
+    result.replaceChildren(el('p', { className: 'muted' }, 'Consultando…'));
+  }
   try {
     await action();
   } catch (error) {
     renderError(error);
   } finally {
-    submitButton.disabled = false;
-    fillCompaniesButton.disabled = false;
+    setBusy(false);
+    void loadHistory();
   }
 }
 
@@ -200,12 +286,7 @@ function renderCompanyRecords(group: CompanyRecords): HTMLElement {
     return el('div', { className: 'card' }, header, el('p', { className: 'muted' }, 'Sem vínculo entre este cliente e a empresa.'));
   }
   const head = el('tr', {}, ...['ID', 'Produto', 'Valor', 'Atualizado em'].map((label) => el('th', {}, label)));
-  const table = el(
-    'table',
-    {},
-    el('thead', {}, head),
-    el('tbody', {}, ...group.records.map(renderRecordRow)),
-  );
+  const table = el('table', {}, el('thead', {}, head), el('tbody', {}, ...group.records.map(renderRecordRow)));
   return el('div', { className: 'card' }, header, el('div', { className: 'table-wrap' }, table));
 }
 
@@ -220,20 +301,119 @@ function renderRecordRow(record: RecordItem): HTMLTableRowElement {
   );
 }
 
+function metric(value: string, label: string): HTMLElement {
+  return el('div', {}, el('strong', {}, value), el('span', {}, label));
+}
+
+function renderSearch(): void {
+  if (!search) {
+    return;
+  }
+  const { items, totals, nextCursor } = search;
+  const summary = el(
+    'div',
+    { className: 'summary-grid' },
+    metric(`${integer.format(items.length)} de ${integer.format(totals.records)}`, 'Registros exibidos'),
+    metric(integer.format(totals.companies), totals.companies === 1 ? 'Empresa' : 'Empresas'),
+    metric(currency.format(totals.amount), 'Valor total do filtro'),
+  );
+  if (items.length === 0) {
+    result.replaceChildren(summary, el('p', { className: 'muted' }, 'Nenhum registro atende aos filtros.'));
+    return;
+  }
+  const head = el('tr', {}, ...['Empresa', 'ID', 'Produto', 'Valor', 'Atualizado em'].map((label) => el('th', {}, label)));
+  const rows = items.map((item) =>
+    el(
+      'tr',
+      {},
+      el('td', {}, maskDocument(item.company, 'CNPJ')),
+      el('td', {}, String(item.id)),
+      el('td', {}, item.product),
+      el('td', { className: 'number' }, currency.format(item.amount)),
+      el('td', {}, dateTime.format(new Date(item.updatedAt))),
+    ),
+  );
+  const table = el('div', { className: 'card table-wrap' }, el('table', {}, el('thead', {}, head), el('tbody', {}, ...rows)));
+  const children: Node[] = [summary, table];
+  if (nextCursor) {
+    const more = el('button', { type: 'button', className: 'secondary load-more' }, 'Carregar mais');
+    more.addEventListener('click', () => void loadMore(more));
+    children.push(more);
+  }
+  result.replaceChildren(...children);
+}
+
+async function loadMore(button: HTMLButtonElement): Promise<void> {
+  if (!search?.nextCursor) {
+    return;
+  }
+  button.disabled = true;
+  button.textContent = 'Carregando…';
+  const state = search;
+  await run(async () => {
+    const page = await searchRecords({ ...state.request, cursor: state.nextCursor ?? undefined });
+    search = { ...state, items: [...state.items, ...page.items], totals: page.totals, nextCursor: page.nextCursor };
+    renderSearch();
+  }, false);
+}
+
+function renderHistory(items: HistoryItem[]): void {
+  if (items.length === 0) {
+    historyList.replaceChildren(el('p', { className: 'muted' }, 'Nenhuma consulta ainda.'));
+    return;
+  }
+  historyList.replaceChildren(
+    ...items.map((item) => {
+      const outcome = OUTCOMES[item.outcome] ?? OUTCOMES.FAILED;
+      const results = `${integer.format(item.resultCount)} ${item.resultCount === 1 ? 'resultado' : 'resultados'}`;
+      return el(
+        'div',
+        { className: 'history-item' },
+        el(
+          'div',
+          {},
+          el('strong', {}, ACTIONS[item.action] ?? item.action),
+          el('small', {}, ` · ${item.year} · ${item.documentType} ${item.document}`),
+        ),
+        el(
+          'div',
+          { className: 'history-meta' },
+          el('span', { className: outcome.className }, outcome.label),
+          el('small', {}, `${results} · ${item.durationMs} ms · ${dateTime.format(new Date(item.at))}`),
+        ),
+      );
+    }),
+  );
+}
+
+async function loadHistory(): Promise<void> {
+  if (!session) {
+    return;
+  }
+  try {
+    renderHistory((await fetchHistory()).items);
+  } catch {
+    historyList.replaceChildren(el('p', { className: 'muted' }, 'Histórico indisponível no momento.'));
+  }
+}
+
 form.addEventListener('submit', (event) => {
   event.preventDefault();
   void run(async () => {
     if (current === 'companies') {
-      const response = await findCompanies(readKey());
-      renderCompanies(response.companies);
+      renderCompanies((await findCompanies(readKey())).companies);
+    } else if (current === 'records') {
+      renderRecords((await findRecords({ ...readKey(), companies: readCompanies() })).companies);
     } else {
-      const response = await findRecords({ ...readKey(), companies: readCompanies() });
-      renderRecords(response.companies);
+      const request = readSearch();
+      const page = await searchRecords(request);
+      search = { request, items: page.items, totals: page.totals, nextCursor: page.nextCursor };
+      renderSearch();
     }
   });
 });
 
-// Atalho do endpoint 2: preenche a lista de CNPJs consultando o endpoint 1 com a mesma chave.
+// Atalho: preenche a lista de CNPJs consultando o endpoint 1 com a mesma chave.
 fillCompaniesButton.addEventListener('click', () => {
   void run(async () => {
     const response = await findCompanies(readKey());
@@ -245,6 +425,23 @@ fillCompaniesButton.addEventListener('click', () => {
     }
   });
 });
+
+for (const [button, format] of [[exportCsv, 'csv'], [exportXlsx, 'xlsx']] as const) {
+  button.addEventListener('click', () =>
+    void run(async () => {
+      const { truncated } = await exportRecords(readSearch(), format);
+      result.replaceChildren(
+        el(
+          'p',
+          { className: 'muted' },
+          truncated
+            ? 'Arquivo baixado com as primeiras 5.000 linhas. Refine os filtros para exportar o restante.'
+            : 'Arquivo baixado.',
+        ),
+      );
+    }, false),
+  );
+}
 
 // Máscaras: o campo nunca aceita mais caracteres do que o documento do tipo escolhido.
 const documentInput = query<HTMLInputElement>('input[name="document"]');
@@ -277,5 +474,7 @@ for (const image of document.querySelectorAll<HTMLImageElement>('.partner img'))
   image.addEventListener('error', () => image.classList.add('image-missing'));
 }
 
-selectEndpoint(location.hash === '#records' ? 'records' : 'companies');
-showApplication(hasSession());
+const initial = location.hash.slice(1);
+current = initial === 'records' || initial === 'search' ? initial : 'companies';
+loginView.hidden = true;
+void currentSession().then(showApplication);
