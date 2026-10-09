@@ -23,10 +23,18 @@ const TRANSLATIONS: [RegExp, (match: RegExpMatchArray) => string][] = [
   [/^Authentication required$/, () => 'Sua sessão expirou. Entre novamente.'],
   [/^Access denied$/, () => 'Seu usuário não tem permissão para esta ação.'],
   [/^Database is currently unavailable, please try again$/, () => 'Banco de dados indisponível no momento. Tente novamente.'],
+  [/^Too many failed login attempts, retry in (\d+) s$/, (m) => `Muitas tentativas de login com senha errada. Tente novamente em ${waitText(Number(m[1]))}.`],
+  [/^username must have at most (\d+) characters$/, (m) => `O usuário deve ter no máximo ${m[1]} caracteres.`],
+  [/^password must have at most (\d+) bytes$/, (m) => `A senha deve ter no máximo ${m[1]} caracteres.`],
   [/^Request rate limit exceeded, retry in (\d+) s$/, (m) => `Muitas consultas em pouco tempo. Tente novamente em ${m[1]} s.`],
   [/^Invalid request$/, () => 'Requisição inválida: confira os campos preenchidos.'],
   [/^Unexpected error, please try again$/, () => 'Erro inesperado. Tente novamente em instantes.'],
 ];
+
+// Bloqueios de login passam de 1 minuto: "8 min" lê melhor que "480 s".
+function waitText(seconds: number): string {
+  return seconds < 90 ? `${seconds} s` : `${Math.ceil(seconds / 60)} min`;
+}
 
 export function translateApiMessage(message: string): string {
   for (const [pattern, translate] of TRANSLATIONS) {

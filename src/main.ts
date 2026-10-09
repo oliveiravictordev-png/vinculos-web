@@ -149,7 +149,7 @@ loginForm.addEventListener('submit', (event) => {
       showApplication(active);
     })
     .catch((error: unknown) => {
-      loginError.textContent = error instanceof ApiError && (error.status === 401 || error.status === 400)
+      loginError.textContent = error instanceof ApiError && [400, 401, 429].includes(error.status)
         ? translateApiMessage(error.message)
         : 'Não foi possível entrar. Tente novamente.';
       loginError.hidden = false;
